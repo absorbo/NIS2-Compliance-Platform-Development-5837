@@ -3,22 +3,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import * as FiIcons from 'react-icons/fi';
 import SafeIcon from '../common/SafeIcon';
 import { useAppStore } from '../store/appStore';
-import { euCountries, industrySectors, companySizes } from '../data/constants';
+import { euCountries } from '../data/constants';
 import { entityClassification, determineEntitySize } from '../data/entityClassification';
 
-const { 
-  FiArrowRight, 
-  FiArrowLeft, 
-  FiCheck, 
-  FiBuilding, 
-  FiGlobe, 
-  FiUsers, 
-  FiShield, 
-  FiAlertTriangle, 
-  FiDollarSign,
-  FiInfo,
-  FiCheckCircle
-} = FiIcons;
+const { FiArrowRight, FiArrowLeft, FiCheck, FiBuilding, FiGlobe, FiUsers, FiShield, FiAlertTriangle, FiDollarSign, FiInfo, FiCheckCircle } = FiIcons;
 
 const OnboardingFlow = () => {
   const [currentStep, setCurrentStep] = useState(0);
@@ -34,7 +22,6 @@ const OnboardingFlow = () => {
     entityType: null,
     populationServed: ''
   });
-
   const { completeOnboarding } = useAppStore();
 
   const steps = [
@@ -91,14 +78,22 @@ const OnboardingFlow = () => {
 
   const canProceed = () => {
     switch (currentStep) {
-      case 0: return true;
-      case 1: return formData.companyName.trim() !== '';
-      case 2: return formData.country !== '';
-      case 3: return formData.industry !== '';
-      case 4: return formData.employees !== '' && formData.revenue !== '';
-      case 5: return true; // Entity classification is determined automatically
-      case 6: return true;
-      default: return false;
+      case 0:
+        return true;
+      case 1:
+        return formData.companyName.trim() !== '';
+      case 2:
+        return formData.country !== '';
+      case 3:
+        return formData.industry !== '';
+      case 4:
+        return formData.employees !== '' && formData.revenue !== '';
+      case 5:
+        return true; // Entity classification is determined automatically
+      case 6:
+        return true;
+      default:
+        return false;
     }
   };
 
@@ -147,7 +142,10 @@ const OnboardingFlow = () => {
               exit={{ opacity: 0, x: -20 }}
               transition={{ duration: 0.3 }}
             >
-              <CurrentStepComponent formData={formData} setFormData={setFormData} />
+              <CurrentStepComponent
+                formData={formData}
+                setFormData={setFormData}
+              />
             </motion.div>
           </AnimatePresence>
 
@@ -176,7 +174,10 @@ const OnboardingFlow = () => {
               }`}
             >
               <span>{currentStep === steps.length - 1 ? 'Get Started' : 'Next'}</span>
-              <SafeIcon icon={currentStep === steps.length - 1 ? FiCheck : FiArrowRight} className="w-4 h-4" />
+              <SafeIcon
+                icon={currentStep === steps.length - 1 ? FiCheck : FiArrowRight}
+                className="w-4 h-4"
+              />
             </button>
           </div>
         </motion.div>
@@ -249,27 +250,26 @@ const CountryStep = ({ formData, setFormData }) => (
 const IndustryStep = ({ formData, setFormData }) => {
   // Combine all sectors from essential and important categories
   const allSectors = [
-    ...entityClassification.essential.sectors.map(s => ({ 
-      value: s.sector, 
-      label: s.sector,
-      type: 'essential' 
+    ...entityClassification.sectors.essential.map(s => ({
+      value: s.name,
+      label: s.name,
+      type: 'essential'
     })),
-    ...entityClassification.important.sectors.map(s => ({ 
-      value: s.sector, 
-      label: s.sector,
-      type: 'important' 
+    ...entityClassification.sectors.important.map(s => ({
+      value: s.name,
+      label: s.name,
+      type: 'important'
     }))
   ];
-  
+
   // Get available subsectors for the selected industry
-  const getSubsectors = (sector) => {
-    const essentialSector = entityClassification.essential.sectors.find(s => s.sector === sector);
-    const importantSector = entityClassification.important.sectors.find(s => s.sector === sector);
+  const getSubsectors = (industry) => {
+    const essentialSector = entityClassification.sectors.essential.find(s => s.name === industry);
+    const importantSector = entityClassification.sectors.important.find(s => s.name === industry);
     const selectedSector = essentialSector || importantSector;
-    
     return selectedSector?.subsectors || [];
   };
-  
+
   const subsectors = getSubsectors(formData.industry);
 
   return (
@@ -280,8 +280,8 @@ const IndustryStep = ({ formData, setFormData }) => {
         </label>
         <select
           value={formData.industry}
-          onChange={(e) => setFormData({ 
-            ...formData, 
+          onChange={(e) => setFormData({
+            ...formData,
             industry: e.target.value,
             subsector: '' // Reset subsector when industry changes
           })}
@@ -328,7 +328,7 @@ const IndustryStep = ({ formData, setFormData }) => {
           </select>
         </div>
       )}
-      
+
       {formData.industry && (
         <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
           <div className="flex items-start space-x-2">
@@ -344,7 +344,7 @@ const IndustryStep = ({ formData, setFormData }) => {
                   <strong>Note:</strong> Micro and small enterprises in this sector are excluded from NIS2 requirements.
                 </p>
               )}
-              {formData.industry === 'Public administration' && (
+              {formData.industry === 'Public Administration' && (
                 <p className="text-sm text-blue-800 mt-2">
                   <strong>Note:</strong> Public administration entities are only in scope if they serve 5% or more of the national population or have 50+ employees.
                 </p>
@@ -399,7 +399,7 @@ const SizeStep = ({ formData, setFormData }) => (
       </div>
     </div>
 
-    {formData.industry === 'Public administration' && (
+    {formData.industry === 'Public Administration' && (
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
           Population Served (% of national population) *
@@ -441,24 +441,28 @@ const ClassificationStep = ({ formData, setFormData }) => {
   const employees = Number(formData.employees);
   const revenue = Number(formData.revenue);
   const size = determineEntitySize(employees, revenue);
-  
+
   // Handle special cases
-  const isPublicAdmin = formData.industry === 'Public administration';
+  const isPublicAdmin = formData.industry === 'Public Administration';
   const population = isPublicAdmin ? Number(formData.populationServed) : 0;
-  
+
   // Determine entity type
-  const entityType = entityClassification.determineEntityType(
-    formData.industry, 
-    size, 
-    isPublicAdmin,
-    population
-  );
+  const entityType = entityClassification.determineEntityType({
+    sector: formData.industry,
+    subsector: formData.subsector,
+    employees,
+    revenue,
+    country: formData.country,
+    populationServed: population,
+    criticalServices: false,
+    crossBorder: false
+  });
 
   // Update form data with entity type
   React.useEffect(() => {
     setFormData({
       ...formData,
-      entityType,
+      entityType: entityType?.type,
       entitySize: size
     });
   }, []);
@@ -466,60 +470,41 @@ const ClassificationStep = ({ formData, setFormData }) => {
   return (
     <div className="space-y-6">
       <div className={`p-5 border rounded-lg ${
-        entityType === 'essential' 
-          ? 'bg-primary-50 border-primary-200' 
-          : entityType === 'important' 
-            ? 'bg-warning-50 border-warning-200'
-            : 'bg-gray-50 border-gray-200'
+        entityType?.type === 'essential' ? 'bg-primary-50 border-primary-200' :
+        entityType?.type === 'important' ? 'bg-warning-50 border-warning-200' :
+        'bg-gray-50 border-gray-200'
       }`}>
         <div className="flex items-start space-x-3">
           <div className={`p-2 rounded-full ${
-            entityType === 'essential' 
-              ? 'bg-primary-100' 
-              : entityType === 'important' 
-                ? 'bg-warning-100'
-                : 'bg-gray-100'
+            entityType?.type === 'essential' ? 'bg-primary-100' :
+            entityType?.type === 'important' ? 'bg-warning-100' :
+            'bg-gray-100'
           }`}>
-            <SafeIcon 
-              icon={
-                entityType === 'essential' || entityType === 'important'
-                  ? FiCheckCircle 
-                  : FiAlertTriangle
-              } 
+            <SafeIcon
+              icon={entityType?.type === 'essential' || entityType?.type === 'important' ? FiCheckCircle : FiAlertTriangle}
               className={`w-5 h-5 ${
-                entityType === 'essential' 
-                  ? 'text-primary-600' 
-                  : entityType === 'important' 
-                    ? 'text-warning-600'
-                    : 'text-gray-600'
-              }`} 
+                entityType?.type === 'essential' ? 'text-primary-600' :
+                entityType?.type === 'important' ? 'text-warning-600' :
+                'text-gray-600'
+              }`}
             />
           </div>
-          
           <div>
             <h4 className="text-lg font-medium mb-1">
-              {entityType === 'essential' 
-                ? 'Essential Entity' 
-                : entityType === 'important' 
-                  ? 'Important Entity'
-                  : entityType === 'excluded'
-                    ? 'Excluded from NIS2'
-                    : 'Not covered by NIS2'}
+              {entityType?.type === 'essential' ? 'Essential Entity' :
+               entityType?.type === 'important' ? 'Important Entity' :
+               entityType?.type === 'excluded' ? 'Excluded from NIS2' :
+               'Not covered by NIS2'}
             </h4>
-            
             <p className="text-sm mb-3">
-              {entityType === 'essential' 
-                ? 'Your organization is classified as an Essential Entity under NIS2, subject to comprehensive requirements.' 
-                : entityType === 'important' 
-                  ? 'Your organization is classified as an Important Entity under NIS2, subject to baseline requirements.'
-                  : entityType === 'excluded'
-                    ? 'Based on your inputs, your organization appears to be excluded from NIS2 requirements.'
-                    : 'Your organization does not appear to be covered by the NIS2 Directive.'}
+              {entityType?.type === 'essential' ? 'Your organization is classified as an Essential Entity under NIS2, subject to comprehensive requirements.' :
+               entityType?.type === 'important' ? 'Your organization is classified as an Important Entity under NIS2, subject to baseline requirements.' :
+               entityType?.type === 'excluded' ? 'Based on your inputs, your organization appears to be excluded from NIS2 requirements.' :
+               'Your organization does not appear to be covered by the NIS2 Directive.'}
             </p>
-
             <div className="flex items-center space-x-2 text-sm">
               <span className="px-2 py-1 bg-gray-100 rounded text-gray-800">
-                {size.description}
+                {size} organization
               </span>
               <span className="text-gray-600">
                 {employees} employees, €{revenue}M revenue
@@ -529,11 +514,11 @@ const ClassificationStep = ({ formData, setFormData }) => {
         </div>
 
         {/* Requirements based on classification */}
-        {(entityType === 'essential' || entityType === 'important') && (
+        {(entityType?.type === 'essential' || entityType?.type === 'important') && (
           <div className="mt-5 pt-5 border-t border-gray-200">
             <h5 className="font-medium mb-3">Key Requirements</h5>
             <ul className="space-y-2">
-              {entityType === 'essential' ? (
+              {entityType?.type === 'essential' ? (
                 <>
                   <li className="flex items-start space-x-2">
                     <SafeIcon icon={FiShield} className="w-4 h-4 text-primary-500 mt-0.5" />
@@ -569,16 +554,14 @@ const ClassificationStep = ({ formData, setFormData }) => {
         )}
 
         {/* Exclusion explanation if applicable */}
-        {entityType === 'excluded' && (
+        {entityType?.type === 'excluded' && (
           <div className="mt-4 pt-4 border-t border-gray-200">
             <div className="flex items-start space-x-2">
               <SafeIcon icon={FiInfo} className="w-5 h-5 text-blue-500 mt-0.5" />
               <div>
                 <h5 className="font-medium mb-1">Why you may be excluded</h5>
                 <p className="text-sm">
-                  NIS2 typically excludes micro and small enterprises (fewer than 50 employees and annual turnover under €10 million) 
-                  unless they are in specific sectors or meet certain criteria. Public administration entities are only included 
-                  if they serve 5% or more of the national population or have 50+ employees.
+                  NIS2 typically excludes micro and small enterprises (fewer than 50 employees and annual turnover under €10 million) unless they are in specific sectors or meet certain criteria. Public administration entities are only included if they serve 5% or more of the national population or have 50+ employees.
                 </p>
               </div>
             </div>
@@ -592,9 +575,7 @@ const ClassificationStep = ({ formData, setFormData }) => {
           <div>
             <h5 className="font-medium text-blue-900 mb-1">Important Note</h5>
             <p className="text-sm text-blue-800">
-              This classification is based on the information you provided and the criteria in the NIS2 Directive. 
-              The final determination of your organization's status should be made in consultation with legal experts 
-              and the relevant national authorities in {formData.country || 'your country'}.
+              This classification is based on the information you provided and the criteria in the NIS2 Directive. The final determination of your organization's status should be made in consultation with legal experts and the relevant national authorities in {formData.country || 'your country'}.
             </p>
           </div>
         </div>
@@ -608,36 +589,25 @@ const CompletionStep = ({ formData }) => (
     <div className="w-20 h-20 bg-success-100 rounded-full flex items-center justify-center mx-auto mb-6">
       <SafeIcon icon={FiCheck} className="w-10 h-10 text-success-600" />
     </div>
-    
     <h2 className="text-2xl font-semibold text-gray-900 mb-4">
       Setup Complete!
     </h2>
-    
     <p className="text-gray-600 max-w-md mx-auto mb-6">
       Your organization profile has been created. You can now begin your NIS2 compliance assessment and generate your personalized roadmap.
     </p>
-
     {formData.entityType && (
       <div className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-medium ${
-        formData.entityType === 'essential' 
-          ? 'bg-primary-100 text-primary-800' 
-          : formData.entityType === 'important' 
-            ? 'bg-warning-100 text-warning-800'
-            : 'bg-gray-100 text-gray-800'
+        formData.entityType === 'essential' ? 'bg-primary-100 text-primary-800' :
+        formData.entityType === 'important' ? 'bg-warning-100 text-warning-800' :
+        'bg-gray-100 text-gray-800'
       }`}>
-        <SafeIcon 
-          icon={
-            formData.entityType === 'essential' || formData.entityType === 'important'
-              ? FiCheckCircle 
-              : FiInfo
-          } 
-          className="w-4 h-4 mr-2" 
+        <SafeIcon
+          icon={formData.entityType === 'essential' || formData.entityType === 'important' ? FiCheckCircle : FiInfo}
+          className="w-4 h-4 mr-2"
         />
-        {formData.entityType === 'essential' 
-          ? 'Essential Entity' 
-          : formData.entityType === 'important' 
-            ? 'Important Entity'
-            : 'Not covered by NIS2'}
+        {formData.entityType === 'essential' ? 'Essential Entity' :
+         formData.entityType === 'important' ? 'Important Entity' :
+         'Not covered by NIS2'}
       </div>
     )}
   </div>
