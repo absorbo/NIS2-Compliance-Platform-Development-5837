@@ -8,44 +8,54 @@ import ComplianceScoreCard from '../components/ComplianceScoreCard';
 import QuickActions from '../components/QuickActions';
 import RecentActivity from '../components/RecentActivity';
 import ComplianceChart from '../components/ComplianceChart';
+import EntityClassificationTool from '../components/EntityClassificationTool';
 
 const { FiTrendingUp, FiAlertTriangle, FiCheckCircle, FiClock } = FiIcons;
 
 const Dashboard = () => {
-  const { companyProfile, complianceScore, assessmentProgress, roadmapItems } = useAppStore();
-
+  const { 
+    companyProfile,
+    complianceScore,
+    assessmentProgress,
+    roadmapItems
+  } = useAppStore();
+  
+  // Get real stats based on actual state
   const stats = [
     {
       title: 'Compliance Score',
       value: `${complianceScore}%`,
       icon: FiTrendingUp,
       color: complianceScore >= 80 ? 'success' : complianceScore >= 60 ? 'warning' : 'danger',
-      trend: '+12%',
-      description: 'vs last month'
+      trend: useAppStore.getState().assessmentAnswers.length > 0 ? '+' : '',
+      description: 'based on assessment'
     },
     {
       title: 'Assessment Progress',
       value: `${assessmentProgress}%`,
       icon: FiCheckCircle,
       color: 'primary',
-      trend: '+25%',
+      trend: assessmentProgress > 0 ? '+' : '',
       description: 'completion rate'
     },
     {
       title: 'Open Action Items',
-      value: roadmapItems.filter(item => item.status !== 'completed').length,
+      value: roadmapItems.filter(item => item.status !== 'completed').length || 0,
       icon: FiClock,
       color: 'warning',
-      trend: '-3',
-      description: 'from last week'
+      trend: '',
+      description: 'pending resolution'
     },
     {
-      title: 'Critical Gaps',
-      value: roadmapItems.filter(item => item.priority === 'high' && item.status !== 'completed').length,
+      title: 'Entity Type',
+      value: companyProfile?.entityType 
+        ? companyProfile.entityType.charAt(0).toUpperCase() + companyProfile.entityType.slice(1) 
+        : 'Unknown',
       icon: FiAlertTriangle,
-      color: 'danger',
-      trend: '-1',
-      description: 'resolved this week'
+      color: companyProfile?.entityType === 'essential' ? 'primary' : 
+             companyProfile?.entityType === 'important' ? 'warning' : 'gray',
+      trend: '',
+      description: 'NIS2 classification'
     }
   ];
 
@@ -81,22 +91,26 @@ const Dashboard = () => {
               <div className={`p-3 rounded-lg ${
                 stat.color === 'success' ? 'bg-success-100' :
                 stat.color === 'warning' ? 'bg-warning-100' :
-                stat.color === 'danger' ? 'bg-danger-100' : 'bg-primary-100'
+                stat.color === 'danger' ? 'bg-danger-100' :
+                'bg-primary-100'
               }`}>
-                <SafeIcon 
-                  icon={stat.icon} 
+                <SafeIcon
+                  icon={stat.icon}
                   className={`w-6 h-6 ${
                     stat.color === 'success' ? 'text-success-600' :
                     stat.color === 'warning' ? 'text-warning-600' :
-                    stat.color === 'danger' ? 'text-danger-600' : 'text-primary-600'
+                    stat.color === 'danger' ? 'text-danger-600' :
+                    'text-primary-600'
                   }`}
                 />
               </div>
-              <span className={`text-sm font-medium ${
-                stat.trend.startsWith('+') ? 'text-success-600' : 'text-danger-600'
-              }`}>
-                {stat.trend}
-              </span>
+              {stat.trend && (
+                <span className={`text-sm font-medium ${
+                  stat.trend.startsWith('+') ? 'text-success-600' : 'text-danger-600'
+                }`}>
+                  {stat.trend}
+                </span>
+              )}
             </div>
             <h3 className="text-2xl font-bold text-gray-900 mb-1">{stat.value}</h3>
             <p className="text-sm text-gray-500">{stat.title}</p>
@@ -104,6 +118,18 @@ const Dashboard = () => {
           </motion.div>
         ))}
       </div>
+
+      {/* Entity Classification Tool (if not yet classified) */}
+      {(!companyProfile?.entityType || companyProfile.entityType === 'unknown') && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+          className="mb-8"
+        >
+          <EntityClassificationTool />
+        </motion.div>
+      )}
 
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

@@ -7,7 +7,7 @@ import { useAppStore } from '../store/appStore';
 const { FiTrendingUp, FiTarget, FiCheckCircle, FiAlertTriangle } = FiIcons;
 
 const ComplianceScoreCard = () => {
-  const { complianceScore } = useAppStore();
+  const { complianceScore, companyProfile } = useAppStore();
 
   const getScoreColor = (score) => {
     if (score >= 80) return 'success';
@@ -23,6 +23,14 @@ const ComplianceScoreCard = () => {
 
   const scoreColor = getScoreColor(complianceScore);
   const scoreText = getScoreText(complianceScore);
+  
+  // Determine entity type badge
+  const entityType = companyProfile?.entityType || 'unknown';
+  const entityBadge = entityType === 'essential' 
+    ? { label: 'Essential Entity', color: 'primary' }
+    : entityType === 'important' 
+      ? { label: 'Important Entity', color: 'warning' }
+      : { label: 'Status Unknown', color: 'gray' };
 
   return (
     <div className="bg-white rounded-xl shadow-sm p-6">
@@ -50,11 +58,18 @@ const ComplianceScoreCard = () => {
         </div>
         
         <div className="text-right">
-          <div className="flex items-center text-success-600 text-sm font-medium mb-1">
-            <SafeIcon icon={FiTrendingUp} className="w-4 h-4 mr-1" />
-            +12%
+          <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+            entityBadge.color === 'primary' ? 'bg-primary-100 text-primary-800' :
+            entityBadge.color === 'warning' ? 'bg-warning-100 text-warning-800' :
+            'bg-gray-100 text-gray-800'
+          }`}>
+            {entityBadge.label}
           </div>
-          <div className="text-xs text-gray-500">vs last month</div>
+          
+          <div className="flex items-center text-success-600 text-sm font-medium mt-2">
+            <SafeIcon icon={FiTrendingUp} className="w-4 h-4 mr-1" />
+            Based on {Object.keys(useAppStore.getState().assessmentAnswers).length} answered questions
+          </div>
         </div>
       </div>
 
@@ -78,21 +93,20 @@ const ComplianceScoreCard = () => {
         </div>
       </div>
 
-      {/* Action Items */}
-      <div className="space-y-2">
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-gray-600">Controls Covered</span>
-          <span className="font-medium text-gray-900">24/35</span>
+      {/* Entity Type Info */}
+      {entityType !== 'unknown' && (
+        <div className="pt-4 border-t border-gray-200">
+          <div className="text-sm text-gray-600">
+            {entityType === 'essential' ? (
+              <p>As an <strong>Essential Entity</strong>, your organization is subject to comprehensive NIS2 requirements including stricter oversight and potentially higher penalties.</p>
+            ) : entityType === 'important' ? (
+              <p>As an <strong>Important Entity</strong>, your organization is subject to baseline NIS2 requirements with more flexible compliance options.</p>
+            ) : (
+              <p>Complete your profile to determine your NIS2 entity classification.</p>
+            )}
+          </div>
         </div>
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-gray-600">Critical Gaps</span>
-          <span className="font-medium text-danger-600">3</span>
-        </div>
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-gray-600">Next Review</span>
-          <span className="font-medium text-gray-900">March 2024</span>
-        </div>
-      </div>
+      )}
     </div>
   );
 };

@@ -9,20 +9,14 @@ export const useAppStore = create(
       companyProfile: null,
       selectedCountry: null,
       
-      // Assessment state with AI integration
+      // Assessment state
       assessmentProgress: 0,
       assessmentAnswers: {},
       currentQuestionIndex: 0,
       evidenceFiles: {},
-      aiAnalysis: {
-        overallScore: 0,
-        confidenceLevel: 0,
-        recommendations: [],
-        evidenceValidation: {}
-      },
-
-      // Enhanced compliance tracking
-      complianceScore: 72,
+      
+      // Compliance tracking
+      complianceScore: 0,
       complianceGaps: [],
       controlCoverage: {
         covered: [],
@@ -32,107 +26,97 @@ export const useAppStore = create(
       
       // Roadmap management
       roadmapItems: [],
-      assignedTasks: {},
-      taskProgress: {},
       
       // UI state
       sidebarOpen: false,
       
       // Enhanced actions
       setCompanyProfile: (profile) => set({ companyProfile: profile }),
+      
+      updateCompanyProfile: (updates) => {
+        const currentProfile = get().companyProfile || {};
+        set({ companyProfile: { ...currentProfile, ...updates } });
+      },
+      
       setSelectedCountry: (country) => set({ selectedCountry: country }),
+      
       setCurrentQuestionIndex: (index) => set({ currentQuestionIndex: index }),
+      
       setAssessmentProgress: (progress) => set({ assessmentProgress: progress }),
+      
       setComplianceScore: (score) => set({ complianceScore: score }),
+      
       setComplianceGaps: (gaps) => set({ complianceGaps: gaps }),
+      
       setSidebarOpen: (open) => set({ sidebarOpen: open }),
       
-      // AI-powered assessment handling
+      // Assessment handling
       updateAssessmentAnswer: (questionId, answer) => {
         const currentAnswers = get().assessmentAnswers;
         
         // Update answers
-        set({
-          assessmentAnswers: { ...currentAnswers, [questionId]: answer }
+        set({ 
+          assessmentAnswers: { 
+            ...currentAnswers, 
+            [questionId]: answer 
+          }
         });
         
-        // Trigger AI analysis
-        get().analyzeCompliance();
-      },
-      
-      // AI compliance analysis
-      analyzeCompliance: async () => {
-        const answers = get().assessmentAnswers;
+        // Calculate progress
+        const totalQuestions = get().totalQuestions || 1;
+        const answeredQuestions = Object.keys(get().assessmentAnswers).length;
+        const progress = Math.round((answeredQuestions / totalQuestions) * 100);
         
-        // Simulate AI analysis for now
-        // In production, this would call the AI service
-        const analysis = {
-          overallScore: 72,
-          confidenceLevel: 0.85,
-          recommendations: [
-            {
-              control: 'NIS2-3.1',
-              priority: 'high',
-              action: 'Implement formal incident response procedures',
-              effort: '40 hours'
-            }
-          ],
-          evidenceValidation: {
-            // Evidence validation results
-          }
-        };
+        set({ assessmentProgress: progress });
         
-        set({ aiAnalysis: analysis });
-        get().updateComplianceScore(analysis);
+        // Calculate compliance score
+        get().calculateComplianceScore();
       },
       
-      updateComplianceScore: (analysis) => {
-        set({ complianceScore: analysis.overallScore });
+      // Calculate compliance score based on answers
+      calculateComplianceScore: () => {
+        const answers = Object.values(get().assessmentAnswers);
+        
+        if (answers.length === 0) {
+          set({ complianceScore: 0 });
+          return;
+        }
+        
+        // Calculate average score
+        const totalScore = answers.reduce((sum, answer) => sum + (answer.score || 0), 0);
+        const averageScore = Math.round(totalScore / answers.length);
+        
+        set({ complianceScore: averageScore });
+        
+        // Identify gaps
+        const gaps = answers
+          .filter(answer => answer.score < 50)
+          .map(answer => ({
+            questionId: answer.questionId,
+            score: answer.score,
+            maturityLevel: answer.maturityLevel
+          }));
+        
+        set({ complianceGaps: gaps });
       },
       
-      // Enhanced roadmap management
+      // Roadmap management
       updateRoadmapItem: (itemId, updates) => {
         const currentItems = get().roadmapItems;
         set({
-          roadmapItems: currentItems.map(item =>
+          roadmapItems: currentItems.map(item => 
             item.id === itemId ? { ...item, ...updates } : item
           )
         });
       },
       
-      assignTask: (taskId, userId) => {
-        const currentAssignments = get().assignedTasks;
-        set({
-          assignedTasks: { ...currentAssignments, [taskId]: userId }
-        });
-      },
-      
-      updateTaskProgress: (taskId, progress) => {
-        const currentProgress = get().taskProgress;
-        set({
-          taskProgress: { ...currentProgress, [taskId]: progress }
-        });
-      },
-      
-      // Enhanced onboarding
+      // Onboarding
       completeOnboarding: (profile, country) => {
         set({
           isOnboarded: true,
           companyProfile: profile,
           selectedCountry: country
         });
-        // Initialize country-specific requirements
-        get().loadCountryRequirements(country);
-      },
-      
-      // Country-specific requirement loading
-      loadCountryRequirements: (countryCode) => {
-        // This would load specific national transposition requirements
-        // For now, we'll focus on Belgium
-        if (countryCode === 'BE') {
-          // Load Belgian CyFun requirements
-          console.log('Loading Belgian CyFun requirements...');
-        }
       }
     }),
     {

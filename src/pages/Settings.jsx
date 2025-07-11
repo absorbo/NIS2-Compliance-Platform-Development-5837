@@ -4,6 +4,8 @@ import * as FiIcons from 'react-icons/fi';
 import SafeIcon from '../common/SafeIcon';
 import { useAppStore } from '../store/appStore';
 import { euCountries, industrySectors, companySizes } from '../data/constants';
+import EntityClassificationTool from '../components/EntityClassificationTool';
+import { entityClassification } from '../data/entityClassification';
 
 const { FiSettings, FiUser, FiGlobe, FiShield, FiSave } = FiIcons;
 
@@ -14,12 +16,17 @@ const Settings = () => {
     companyName: companyProfile?.companyName || '',
     country: selectedCountry || '',
     industry: companyProfile?.industry || '',
+    subsector: companyProfile?.subsector || '',
     size: companyProfile?.size || '',
-    criticalInfrastructure: companyProfile?.criticalInfrastructure || null
+    employees: companyProfile?.employees || '',
+    revenue: companyProfile?.revenue || '',
+    populationServed: companyProfile?.populationServed || '',
+    entityType: companyProfile?.entityType || null
   });
 
   const tabs = [
     { id: 'company', label: 'Company Profile', icon: FiUser },
+    { id: 'entity', label: 'Entity Classification', icon: FiShield },
     { id: 'compliance', label: 'Compliance Settings', icon: FiShield },
     { id: 'preferences', label: 'Preferences', icon: FiSettings }
   ];
@@ -29,6 +36,33 @@ const Settings = () => {
     setSelectedCountry(formData.country);
     // Show success message
   };
+
+  // Get all sectors from both essential and important categories
+  const allSectors = [
+    ...entityClassification.essential.sectors.map(s => ({ 
+      value: s.sector, 
+      label: s.sector,
+      type: 'essential' 
+    })),
+    ...entityClassification.important.sectors.map(s => ({ 
+      value: s.sector, 
+      label: s.sector,
+      type: 'important' 
+    }))
+  ];
+
+  // Get subsectors for selected industry
+  const getSubsectors = (industry) => {
+    if (!industry) return [];
+    
+    const essentialSector = entityClassification.essential.sectors.find(s => s.sector === industry);
+    const importantSector = entityClassification.important.sectors.find(s => s.sector === industry);
+    const selectedSector = essentialSector || importantSector;
+    
+    return selectedSector?.subsectors || [];
+  };
+
+  const subsectors = getSubsectors(formData.industry);
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -100,7 +134,7 @@ const Settings = () => {
                   placeholder="Enter company name"
                 />
               </div>
-
+              
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Country
@@ -118,67 +152,117 @@ const Settings = () => {
                   ))}
                 </select>
               </div>
-
+              
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Industry
                 </label>
                 <select
                   value={formData.industry}
-                  onChange={(e) => setFormData({ ...formData, industry: e.target.value })}
+                  onChange={(e) => setFormData({ 
+                    ...formData, 
+                    industry: e.target.value,
+                    subsector: '' // Reset subsector when industry changes
+                  })}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 >
                   <option value="">Select industry</option>
-                  {industrySectors.map((sector) => (
-                    <option key={sector.value} value={sector.value}>
-                      {sector.label}
-                    </option>
-                  ))}
+                  <optgroup label="Essential Entities (Annex I)">
+                    {allSectors
+                      .filter(s => s.type === 'essential')
+                      .map((sector) => (
+                        <option key={sector.value} value={sector.value}>
+                          {sector.label}
+                        </option>
+                      ))}
+                  </optgroup>
+                  <optgroup label="Important Entities (Annex II)">
+                    {allSectors
+                      .filter(s => s.type === 'important')
+                      .map((sector) => (
+                        <option key={sector.value} value={sector.value}>
+                          {sector.label}
+                        </option>
+                      ))}
+                  </optgroup>
                 </select>
               </div>
-
+              
+              {subsectors.length > 0 && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Subsector
+                  </label>
+                  <select
+                    value={formData.subsector}
+                    onChange={(e) => setFormData({ ...formData, subsector: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  >
+                    <option value="">Select subsector</option>
+                    {subsectors.map((subsector) => (
+                      <option key={subsector} value={subsector}>
+                        {subsector}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Company Size
+                  Number of Employees
                 </label>
-                <select
-                  value={formData.size}
-                  onChange={(e) => setFormData({ ...formData, size: e.target.value })}
+                <input
+                  type="number"
+                  value={formData.employees}
+                  onChange={(e) => setFormData({ ...formData, employees: e.target.value })}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                >
-                  <option value="">Select size</option>
-                  {companySizes.map((size) => (
-                    <option key={size.value} value={size.value}>
-                      {size.label}
-                    </option>
-                  ))}
-                </select>
+                  placeholder="e.g., 100"
+                  min="1"
+                />
               </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-3">
-                Critical Infrastructure Status
-              </label>
-              <div className="space-y-2">
-                {[
-                  { value: true, label: 'Yes, we are critical infrastructure' },
-                  { value: false, label: 'No, we are not critical infrastructure' },
-                  { value: null, label: 'I\'m not sure' }
-                ].map((option) => (
-                  <label key={String(option.value)} className="flex items-center space-x-3 cursor-pointer">
-                    <input
-                      type="radio"
-                      checked={formData.criticalInfrastructure === option.value}
-                      onChange={() => setFormData({ ...formData, criticalInfrastructure: option.value })}
-                      className="w-4 h-4 text-primary-600 border-gray-300 focus:ring-primary-500"
-                    />
-                    <span className="text-gray-700">{option.label}</span>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Annual Revenue (€ millions)
+                </label>
+                <input
+                  type="number"
+                  value={formData.revenue}
+                  onChange={(e) => setFormData({ ...formData, revenue: e.target.value })}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  placeholder="e.g., 15"
+                  min="0"
+                  step="0.1"
+                />
+              </div>
+              
+              {formData.industry === 'Public administration' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Population Served (% of national population)
                   </label>
-                ))}
-              </div>
+                  <input
+                    type="number"
+                    value={formData.populationServed}
+                    onChange={(e) => setFormData({ ...formData, populationServed: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    placeholder="e.g., 4.5"
+                    min="0"
+                    max="100"
+                    step="0.1"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    For public administration, NIS2 applies if you serve 5% or more of the national population
+                  </p>
+                </div>
+              )}
             </div>
           </div>
+        )}
+        
+        {activeTab === 'entity' && (
+          <EntityClassificationTool />
         )}
 
         {activeTab === 'compliance' && (
@@ -191,23 +275,35 @@ const Settings = () => {
                   <h4 className="font-medium text-gray-900">Automatic Assessment Updates</h4>
                   <p className="text-sm text-gray-600">Automatically update compliance status when new evidence is submitted</p>
                 </div>
-                <input type="checkbox" defaultChecked className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded" />
+                <input
+                  type="checkbox"
+                  defaultChecked
+                  className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                />
               </div>
-
+              
               <div className="flex items-center justify-between">
                 <div>
                   <h4 className="font-medium text-gray-900">Email Notifications</h4>
                   <p className="text-sm text-gray-600">Receive notifications for compliance updates and deadlines</p>
                 </div>
-                <input type="checkbox" defaultChecked className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded" />
+                <input
+                  type="checkbox"
+                  defaultChecked
+                  className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                />
               </div>
-
+              
               <div className="flex items-center justify-between">
                 <div>
                   <h4 className="font-medium text-gray-900">AI Recommendations</h4>
                   <p className="text-sm text-gray-600">Enable AI-powered suggestions for compliance improvements</p>
                 </div>
-                <input type="checkbox" defaultChecked className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded" />
+                <input
+                  type="checkbox"
+                  defaultChecked
+                  className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                />
               </div>
             </div>
           </div>
@@ -222,30 +318,36 @@ const Settings = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Language
                 </label>
-                <select className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                <select
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                >
                   <option value="en">English</option>
                   <option value="de">German</option>
                   <option value="fr">French</option>
                   <option value="nl">Dutch</option>
                 </select>
               </div>
-
+              
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Timezone
                 </label>
-                <select className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                <select
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                >
                   <option value="UTC">UTC</option>
                   <option value="CET">Central European Time</option>
                   <option value="GMT">Greenwich Mean Time</option>
                 </select>
               </div>
-
+              
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Date Format
                 </label>
-                <select className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                <select
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                >
                   <option value="MM/DD/YYYY">MM/DD/YYYY</option>
                   <option value="DD/MM/YYYY">DD/MM/YYYY</option>
                   <option value="YYYY-MM-DD">YYYY-MM-DD</option>
