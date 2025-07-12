@@ -34,7 +34,7 @@ const AuthGuard = ({ children }) => {
     return () => {
       subscription.unsubscribe();
     };
-  }, []);
+  }, [setUser, navigate]);
 
   if (!user) {
     return null;
